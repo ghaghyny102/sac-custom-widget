@@ -20,9 +20,9 @@ var getScriptPromisify = (src) => {
       this.shadowRoot.appendChild(template.content.cloneNode(true));
       this._firstConnection = 0;
       this._myChart = null;
-      // _props ไม่จำเป็นต้องเก็บสี start/end แล้ว เพราะจะใช้จาก Palette แทน
       this._props = {
-          selectedID: ""
+          selectedID: "",
+          userColorList: "#83bff6, #188df0, #5ee7df, #b490ca" // ค่า Default
       };
     }
 
@@ -41,14 +41,6 @@ var getScriptPromisify = (src) => {
       }
     }
 
-    // ฟังก์ชัน setColors เดิมอาจจะไม่ได้ใช้แล้ว แต่เก็บไว้ไม่เสียหาย
-    setColors(newStartColor, newEndColor) {
-        // this._props.startColor = newStartColor;
-        // this._props.endColor = newEndColor;
-        // this.render();
-        console.warn("setColors is disabled in multi-color mode");
-    }
-
     render() {
       if (!window.echarts) return;
       const chartContainer = this.shadowRoot.getElementById("chart-container");
@@ -57,7 +49,6 @@ var getScriptPromisify = (src) => {
         this._myChart = echarts.init(chartContainer);
         window.onresize = () => { if (this._myChart) this._myChart.resize(); };
 
-        // Click Event
         this._myChart.on('click', (params) => {
             console.log("Clicked:", params.name);
             this.dispatchEvent(new CustomEvent("propertiesChanged", {
@@ -67,16 +58,19 @@ var getScriptPromisify = (src) => {
         });
       }
 
-      // --- 1. เตรียมชุดสี (Gradient Palette) ---
-      // เก็บเป็นคู่ [สีอ่อน(บน), สีเข้ม(ล่าง)]
-      const colorPalette = [
-          ['#83bff6', '#188df0'], // ฟ้า (เดิม)
-          ['#5ee7df', '#b490ca'], // เขียวอมฟ้า-ม่วง
-          ['#f6d365', '#fda085'], // เหลือง-ส้ม
-          ['#f093fb', '#f5576c'], // ชมพู-แดง
-          ['#a1c4fd', '#c2e9fb'], // ฟ้าอ่อน
-          ['#d4fc79', '#96e6a1']  // เขียวมะนาว
-      ];
+      // -----------------------------------------------------------
+      // [ใหม่] แปลงข้อความสี (String) ให้เป็น Array
+      // -----------------------------------------------------------
+      let customColors = [];
+      if (this._props.userColorList) {
+          // ตัดคำด้วย , และลบช่องว่างทิ้ง
+          customColors = this._props.userColorList.split(',').map(c => c.trim());
+      }
+      
+      // ถ้าไม่มีสีเลย ให้ใช้สีกันตาย (Fallback)
+      if (customColors.length === 0) {
+          customColors = ['#5470c6', '#91cc75', '#fac858', '#ee6666'];
+      }
 
       // --- Data Binding Logic ---
       let axisData = [];
@@ -90,38 +84,34 @@ var getScriptPromisify = (src) => {
             seriesData.push(value);
         });
       } else {
-         // Dummy Data
-         axisData = ["User A", "User B", "User C", "User D", "User E", "User F"];
-         seriesData = [150, 230, 224, 118, 190, 260];
+         axisData = ["A", "B", "C", "D", "E"];
+         seriesData = [50, 80, 45, 90, 60];
       }
 
       const option = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-        xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000', interval:0 } },
+        xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000', interval: 0 } },
         yAxis: { type: 'value', axisLine: { show: false }, splitLine: { show: true, lineStyle: { type: 'solid', color: '#eee' } } },
         series: [
           {
             type: 'bar',
             data: seriesData,
             itemStyle: {
-              // --- 2. แก้ไขส่วนนี้: ใช้ฟังก์ชันเลือกสีจาก Palette ---
+              // --- ใช้สีจาก Array ที่เราแปลงมา ---
               color: function (params) {
-                  // params.dataIndex คือลำดับของแท่งกราฟ (0, 1, 2...)
-                  // ใช้ % เพื่อวนลูปสี ถ้าข้อมูลเยอะกว่าจำนวนสีที่มี
-                  var colorPair = colorPalette[params.dataIndex % colorPalette.length];
+                  // วนลูปสีตามลำดับแท่ง
+                  var colorHex = customColors[params.dataIndex % customColors.length];
                   
-                  // สร้าง Gradient จากคู่สีที่เลือกได้
+                  // สร้าง Gradient สวยๆ โดยใช้สีที่เลือก ไล่ไปหาสีเดิมแต่โปร่งแสงนิดหน่อย
                   return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                      { offset: 0, color: colorPair[0] }, 
-                      { offset: 1, color: colorPair[1] }
+                      { offset: 0, color: colorHex },       // สีบน (เข้มเต็มที่)
+                      { offset: 1, color: colorHex }        // สีล่าง (เท่ากัน - แบบ Flat)
+                      // *ถ้าอยากได้ไล่เฉด ให้แก้บรรทัด offset 1 เป็น color: 'white' หรือสีอื่น
                   ]);
               }
             },
-            // ลบ emphasis แบบกำหนดเองออก ปล่อยให้ ECharts จัดการ highlight อัตโนมัติ
-            emphasis: {
-                focus: 'series'
-            }
+            emphasis: { focus: 'series' }
           }
         ]
       };
