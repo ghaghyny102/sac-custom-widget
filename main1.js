@@ -20,10 +20,9 @@ var getScriptPromisify = (src) => {
       this.shadowRoot.appendChild(template.content.cloneNode(true));
       this._firstConnection = 0;
       this._myChart = null;
+      // _props ไม่จำเป็นต้องเก็บสี start/end แล้ว เพราะจะใช้จาก Palette แทน
       this._props = {
-          startColor: "#83bff6",
-          endColor: "#188df0",
-          selectedID: "" // เก็บค่าที่คลิก
+          selectedID: ""
       };
     }
 
@@ -42,10 +41,12 @@ var getScriptPromisify = (src) => {
       }
     }
 
+    // ฟังก์ชัน setColors เดิมอาจจะไม่ได้ใช้แล้ว แต่เก็บไว้ไม่เสียหาย
     setColors(newStartColor, newEndColor) {
-        this._props.startColor = newStartColor;
-        this._props.endColor = newEndColor;
-        this.render();
+        // this._props.startColor = newStartColor;
+        // this._props.endColor = newEndColor;
+        // this.render();
+        console.warn("setColors is disabled in multi-color mode");
     }
 
     render() {
@@ -56,26 +57,26 @@ var getScriptPromisify = (src) => {
         this._myChart = echarts.init(chartContainer);
         window.onresize = () => { if (this._myChart) this._myChart.resize(); };
 
-        // ----------------------------------------------------
-        // [เพิ่มใหม่] ดักจับการคลิก (Click Event)
-        // ----------------------------------------------------
+        // Click Event
         this._myChart.on('click', (params) => {
-            // params.name คือชื่อแท่งกราฟที่คลิก (เช่น "Janet Bury")
             console.log("Clicked:", params.name);
-
-            // 1. อัปเดตค่า selectedID กลับไปที่ SAC
             this.dispatchEvent(new CustomEvent("propertiesChanged", {
-                detail: {
-                    properties: {
-                        selectedID: params.name
-                    }
-                }
+                detail: { properties: { selectedID: params.name } }
             }));
-
-            // 2. ส่งสัญญาณ Event "onSelect" ให้ SAC รู้ตัว
             this.dispatchEvent(new Event("onSelect"));
         });
       }
+
+      // --- 1. เตรียมชุดสี (Gradient Palette) ---
+      // เก็บเป็นคู่ [สีอ่อน(บน), สีเข้ม(ล่าง)]
+      const colorPalette = [
+          ['#83bff6', '#188df0'], // ฟ้า (เดิม)
+          ['#5ee7df', '#b490ca'], // เขียวอมฟ้า-ม่วง
+          ['#f6d365', '#fda085'], // เหลือง-ส้ม
+          ['#f093fb', '#f5576c'], // ชมพู-แดง
+          ['#a1c4fd', '#c2e9fb'], // ฟ้าอ่อน
+          ['#d4fc79', '#96e6a1']  // เขียวมะนาว
+      ];
 
       // --- Data Binding Logic ---
       let axisData = [];
@@ -90,25 +91,36 @@ var getScriptPromisify = (src) => {
         });
       } else {
          // Dummy Data
-         axisData = ["A", "B", "C"];
-         seriesData = [10, 20, 15];
+         axisData = ["User A", "User B", "User C", "User D", "User E", "User F"];
+         seriesData = [150, 230, 224, 118, 190, 260];
       }
 
       const option = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
-        xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000' } },
+        xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000', interval:0 } },
         yAxis: { type: 'value', axisLine: { show: false }, splitLine: { show: true, lineStyle: { type: 'solid', color: '#eee' } } },
         series: [
           {
             type: 'bar',
             data: seriesData,
             itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: this._props.startColor }, 
-                { offset: 0.5, color: this._props.endColor },
-                { offset: 1, color: this._props.endColor }
-              ])
+              // --- 2. แก้ไขส่วนนี้: ใช้ฟังก์ชันเลือกสีจาก Palette ---
+              color: function (params) {
+                  // params.dataIndex คือลำดับของแท่งกราฟ (0, 1, 2...)
+                  // ใช้ % เพื่อวนลูปสี ถ้าข้อมูลเยอะกว่าจำนวนสีที่มี
+                  var colorPair = colorPalette[params.dataIndex % colorPalette.length];
+                  
+                  // สร้าง Gradient จากคู่สีที่เลือกได้
+                  return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: colorPair[0] }, 
+                      { offset: 1, color: colorPair[1] }
+                  ]);
+              }
+            },
+            // ลบ emphasis แบบกำหนดเองออก ปล่อยให้ ECharts จัดการ highlight อัตโนมัติ
+            emphasis: {
+                focus: 'series'
             }
           }
         ]
