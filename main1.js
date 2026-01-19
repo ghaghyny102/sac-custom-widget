@@ -86,29 +86,26 @@ var getScriptPromisify = (src) => {
         grid: { 
             left: '3%', 
             right: '4%', 
-            bottom: '15%', // *เผื่อพื้นที่ด้านล่างให้ Slider Bar*
+            bottom: '15%', 
             top: '3%', 
             containLabel: true 
         },
         
-        // ---------------------------------------------------------
-        // [ส่วนที่เพิ่ม] DataZoom: ให้ซูมและเลื่อนได้
-        // ---------------------------------------------------------
+        // DataZoom: ซูมและเลื่อนได้
         dataZoom: [
             {
-                type: 'inside',   // 1. ซูมด้วยการ Scroll Mouse
-                xAxisIndex: 0,    // ให้ซูมแค่แกน X (แกน Y ไม่ต้องซูม)
-                start: 0,         // เริ่มต้นที่ 0%
-                end: 100          // จบที่ 100% (โชว์ทั้งหมดก่อน)
+                type: 'inside',   
+                xAxisIndex: 0,    
+                start: 0,         
+                end: 100          
             },
             {
-                type: 'slider',   // 2. มีแถบ Slider ให้เลื่อนด้านล่าง
+                type: 'slider',   
                 xAxisIndex: 0,
                 bottom: 0,
                 height: 20
             }
         ],
-        // ---------------------------------------------------------
 
         xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000', interval: 0 } },
         yAxis: { type: 'value', axisLine: { show: false }, splitLine: { show: true, lineStyle: { type: 'solid', color: '#eee' } } },
@@ -134,6 +131,6 @@ var getScriptPromisify = (src) => {
     }
   }
 
-  customElements.define("com-sap-sample-echarts-bar-gradient-binding", CustomBarChart);
+  // จุดที่แก้ไข: เปลี่ยนกลับมาใช้ชื่อเดิมที่ตรงกับ JSON ของคุณ
+  customElements.define("com-example-gradient-bar", CustomBarChart);
 })();
-
