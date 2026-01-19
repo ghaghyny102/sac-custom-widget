@@ -20,10 +20,7 @@ var getScriptPromisify = (src) => {
       this.shadowRoot.appendChild(template.content.cloneNode(true));
       this._firstConnection = 0;
       this._myChart = null;
-      this._props = {
-          selectedID: "",
-          userColorList: "#83bff6, #188df0, #5ee7df, #b490ca" // ค่า Default
-      };
+      this._props = { selectedID: "" };
     }
 
     onCustomWidgetBeforeUpdate(changedProperties) {
@@ -58,19 +55,18 @@ var getScriptPromisify = (src) => {
         });
       }
 
-      // -----------------------------------------------------------
-      // [ใหม่] แปลงข้อความสี (String) ให้เป็น Array
-      // -----------------------------------------------------------
-      let customColors = [];
-      if (this._props.userColorList) {
-          // ตัดคำด้วย , และลบช่องว่างทิ้ง
-          customColors = this._props.userColorList.split(',').map(c => c.trim());
-      }
-      
-      // ถ้าไม่มีสีเลย ให้ใช้สีกันตาย (Fallback)
-      if (customColors.length === 0) {
-          customColors = ['#5470c6', '#91cc75', '#fac858', '#ee6666'];
-      }
+      // --------------------------------------------------
+      // [ส่วนที่เพิ่ม] เตรียมชุดคู่สี Gradient ([สีบน, สีล่าง])
+      // --------------------------------------------------
+      const colorPalette = [
+          ['#83bff6', '#188df0'], // 1. ฟ้า (ชุดเดิม)
+          ['#7affa3', '#30cf5f'], // 2. เขียว
+          ['#ffe082', '#ffb300'], // 3. เหลืองส้ม
+          ['#ff8a80', '#d50000'], // 4. แดง
+          ['#ea80fc', '#aa00ff'], // 5. ม่วง
+          ['#80d8ff', '#0091ea']  // 6. ฟ้าคราม
+          // เพิ่มสีได้อีกตามต้องการ...
+      ];
 
       // --- Data Binding Logic ---
       let axisData = [];
@@ -84,8 +80,8 @@ var getScriptPromisify = (src) => {
             seriesData.push(value);
         });
       } else {
-         axisData = ["A", "B", "C", "D", "E"];
-         seriesData = [50, 80, 45, 90, 60];
+         axisData = ["A", "B", "C", "D", "E", "F"];
+         seriesData = [50, 80, 45, 90, 60, 70];
       }
 
       const option = {
@@ -98,16 +94,18 @@ var getScriptPromisify = (src) => {
             type: 'bar',
             data: seriesData,
             itemStyle: {
-              // --- ใช้สีจาก Array ที่เราแปลงมา ---
+              // --------------------------------------------------
+              // [ส่วนที่แก้] ใช้ฟังก์ชันเลือกสีจาก Palette ตามลำดับ
+              // --------------------------------------------------
               color: function (params) {
-                  // วนลูปสีตามลำดับแท่ง
-                  var colorHex = customColors[params.dataIndex % customColors.length];
+                  // params.dataIndex คือลำดับแท่ง (0, 1, 2...)
+                  // ใช้ % เพื่อวนลูปสี ถ้าข้อมูลเยอะกว่า 6 แท่ง
+                  var colorPair = colorPalette[params.dataIndex % colorPalette.length];
                   
-                  // สร้าง Gradient สวยๆ โดยใช้สีที่เลือก ไล่ไปหาสีเดิมแต่โปร่งแสงนิดหน่อย
+                  // สร้าง Gradient จากคู่สีที่ได้
                   return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                      { offset: 0, color: colorHex },       // สีบน (เข้มเต็มที่)
-                      { offset: 1, color: colorHex }        // สีล่าง (เท่ากัน - แบบ Flat)
-                      // *ถ้าอยากได้ไล่เฉด ให้แก้บรรทัด offset 1 เป็น color: 'white' หรือสีอื่น
+                      { offset: 0, color: colorPair[0] }, // สีบน
+                      { offset: 1, color: colorPair[1] }  // สีล่าง
                   ]);
               }
             },
