@@ -55,20 +55,17 @@ var getScriptPromisify = (src) => {
         });
       }
 
-      // --------------------------------------------------
-      // [ส่วนที่เพิ่ม] เตรียมชุดคู่สี Gradient ([สีบน, สีล่าง])
-      // --------------------------------------------------
+      // ชุดคู่สี Gradient
       const colorPalette = [
-          ['#83bff6', '#188df0'], // 1. ฟ้า (ชุดเดิม)
-          ['#7affa3', '#30cf5f'], // 2. เขียว
-          ['#ffe082', '#ffb300'], // 3. เหลืองส้ม
-          ['#ff8a80', '#d50000'], // 4. แดง
-          ['#ea80fc', '#aa00ff'], // 5. ม่วง
-          ['#80d8ff', '#0091ea']  // 6. ฟ้าคราม
-          // เพิ่มสีได้อีกตามต้องการ...
+          ['#83bff6', '#188df0'], // ฟ้า
+          ['#7affa3', '#30cf5f'], // เขียว
+          ['#ffe082', '#ffb300'], // เหลือง
+          ['#ff8a80', '#d50000'], // แดง
+          ['#ea80fc', '#aa00ff'], // ม่วง
+          ['#80d8ff', '#0091ea']  // ฟ้าคราม
       ];
 
-      // --- Data Binding Logic ---
+      // Prepare Data
       let axisData = [];
       let seriesData = [];
       if (this._props.myData && this._props.myData.state === "success") {
@@ -80,13 +77,39 @@ var getScriptPromisify = (src) => {
             seriesData.push(value);
         });
       } else {
-         axisData = ["A", "B", "C", "D", "E", "F"];
-         seriesData = [50, 80, 45, 90, 60, 70];
+         axisData = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+         seriesData = [50, 80, 45, 90, 60, 70, 30, 40, 55, 88];
       }
 
       const option = {
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '4%', bottom: '3%', top: '3%', containLabel: true },
+        grid: { 
+            left: '3%', 
+            right: '4%', 
+            bottom: '15%', // *เผื่อพื้นที่ด้านล่างให้ Slider Bar*
+            top: '3%', 
+            containLabel: true 
+        },
+        
+        // ---------------------------------------------------------
+        // [ส่วนที่เพิ่ม] DataZoom: ให้ซูมและเลื่อนได้
+        // ---------------------------------------------------------
+        dataZoom: [
+            {
+                type: 'inside',   // 1. ซูมด้วยการ Scroll Mouse
+                xAxisIndex: 0,    // ให้ซูมแค่แกน X (แกน Y ไม่ต้องซูม)
+                start: 0,         // เริ่มต้นที่ 0%
+                end: 100          // จบที่ 100% (โชว์ทั้งหมดก่อน)
+            },
+            {
+                type: 'slider',   // 2. มีแถบ Slider ให้เลื่อนด้านล่าง
+                xAxisIndex: 0,
+                bottom: 0,
+                height: 20
+            }
+        ],
+        // ---------------------------------------------------------
+
         xAxis: { type: 'category', data: axisData, axisLabel: { color: '#000', interval: 0 } },
         yAxis: { type: 'value', axisLine: { show: false }, splitLine: { show: true, lineStyle: { type: 'solid', color: '#eee' } } },
         series: [
@@ -94,18 +117,11 @@ var getScriptPromisify = (src) => {
             type: 'bar',
             data: seriesData,
             itemStyle: {
-              // --------------------------------------------------
-              // [ส่วนที่แก้] ใช้ฟังก์ชันเลือกสีจาก Palette ตามลำดับ
-              // --------------------------------------------------
               color: function (params) {
-                  // params.dataIndex คือลำดับแท่ง (0, 1, 2...)
-                  // ใช้ % เพื่อวนลูปสี ถ้าข้อมูลเยอะกว่า 6 แท่ง
                   var colorPair = colorPalette[params.dataIndex % colorPalette.length];
-                  
-                  // สร้าง Gradient จากคู่สีที่ได้
                   return new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                      { offset: 0, color: colorPair[0] }, // สีบน
-                      { offset: 1, color: colorPair[1] }  // สีล่าง
+                      { offset: 0, color: colorPair[0] }, 
+                      { offset: 1, color: colorPair[1] } 
                   ]);
               }
             },
@@ -118,5 +134,5 @@ var getScriptPromisify = (src) => {
     }
   }
 
-  customElements.define("com-example-gradient-bar", CustomBarChart);
+  customElements.define("com-sap-sample-echarts-bar-gradient-binding", CustomBarChart);
 })();
