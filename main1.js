@@ -136,3 +136,4 @@ var getScriptPromisify = (src) => {
 
   customElements.define("com-sap-sample-echarts-bar-gradient-binding", CustomBarChart);
 })();
+
